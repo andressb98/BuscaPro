@@ -1,0 +1,148 @@
+// Este es tu archivo de esquema de Prisma,
+// aprende más sobre él en la documentación: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. AUTENTICACIÓN CENTRAL
+model Usuario {
+  id                 String   @id @default(uuid())
+  correo             String   @unique
+  contrasena         String
+  fechaCreacion      DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+
+  // Separación estricta de rutas de registro: Relaciones 1 a 1
+  cliente            Cliente?
+  tecnico            Tecnico?
+
+  // Relaciones para chat y calificaciones
+  mensajes                Mensaje[]
+  calificacionesDadas     Calificacion[] @relation("AutorCalificacion")
+  calificacionesRecibidas Calificacion[] @relation("DestinatarioCalificacion")
+}
+
+// 2. PERFIL ESTRICTO DE CLIENTE
+model Cliente {
+  id                       String   @id @default(uuid())
+  usuarioId                String   @unique
+  usuario                  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  nombre                   String
+  telefono                 String?
+  direccion                String?
+  urlIdentificacionOficial String?  // URL del documento de identidad
+  
+  citas                    Cita[]
+  sesionesChat             SesionChat[]
+}
+
+// 3. PERFIL ESTRICTO DE TÉCNICO
+model Tecnico {
+  id                       String   @id @default(uuid())
+  usuarioId                String   @unique
+  usuario                  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  nombre                   String
+  telefono                 String?
+  direccion                String?
+  urlIdentificacionOficial String?  // URL del documento de identidad
+  urlFotoPerfil            String?  // Foto de perfil
+  formacion                String?  // Formación
+  experiencia              String?  // Experiencia
+  estaVerificado           Boolean  @default(false) // Para "Validar Registro"
+  
+  categoriaId              String
+  categoria                Categoria @relation(fields: [categoriaId], references: [id])
+  
+  citas                    Cita[]
+  sesionesChat             SesionChat[]
+}
+
+// 4. CATÁLOGO DE CATEGORÍAS (Buscador Unificado)
+model Categoria {
+  id          String    @id @default(uuid())
+  nombre      String    @unique
+  descripcion String?
+  tecnicos    Tecnico[]
+}
+
+// 5. GESTIÓN (Área Personal: Citas y Solicitudes)
+model Cita {
+  id                 String   @id @default(uuid())
+  clienteId          String
+  tecnicoId          String
+  cliente            Cliente  @relation(fields: [clienteId], references: [id])
+  tecnico            Tecnico  @relation(fields: [tecnicoId], references: [id])
+  
+  fechaProgramada    DateTime
+  estado             String   @default("PENDIENTE") // PENDIENTE, CONFIRMADA, COMPLETADA, CANCELADA
+  montoTotal         Float?
+  
+  fechaCreacion      DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+
+  pago               Pago?
+  calificacion       Calificacion?
+  sesionChat         SesionChat?
+}
+
+// 6. PAGOS
+model Pago {
+  id          String    @id @default(uuid())
+  citaId      String    @unique
+  cita        Cita      @relation(fields: [citaId], references: [id], onDelete: Cascade)
+  
+  monto       Float
+  estado      String    @default("PENDIENTE") // PENDIENTE, COMPLETADO, FALLIDO
+  metodo      String?   // TARJETA, EFECTIVO, TRANSFERENCIA
+  fechaPago   DateTime?
+}
+
+// 7. CALIFICACIONES (Mi Historial / Mis Calificaciones)
+model Calificacion {
+  id             String   @id @default(uuid())
+  citaId         String   @unique
+  cita           Cita     @relation(fields: [citaId], references: [id], onDelete: Cascade)
+  
+  autorId        String
+  destinatarioId String
+  autor          Usuario  @relation("AutorCalificacion", fields: [autorId], references: [id])
+  destinatario   Usuario  @relation("DestinatarioCalificacion", fields: [destinatarioId], references: [id])
+  
+  puntuacion     Int      // Escala 1-5
+  comentario     String?
+  fechaCreacion  DateTime @default(now())
+}
+
+// 8. COMUNICACIÓN (Chat y Confirmación)
+model SesionChat {
+  id             String   @id @default(uuid())
+  citaId         String?  @unique
+  cita           Cita?    @relation(fields: [citaId], references: [id])
+  
+  clienteId      String
+  tecnicoId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id])
+  tecnico        Tecnico  @relation(fields: [tecnicoId], references: [id])
+  
+  mensajes       Mensaje[]
+  fechaCreacion  DateTime @default(now())
+}
+
+model Mensaje {
+  id             String     @id @default(uuid())
+  sesionChatId   String
+  sesionChat     SesionChat @relation(fields: [sesionChatId], references: [id], onDelete: Cascade)
+  
+  remitenteId    String
+  remitente      Usuario    @relation(fields: [remitenteId], references: [id])
+  
+  contenido      String
+  fechaEnvio     DateTime   @default(now())
+}
