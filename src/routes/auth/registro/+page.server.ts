@@ -139,6 +139,6 @@ export const actions: Actions = {
 			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '/dashboard');
+		throw redirect(303, '../../public/tecnicos');
 	}
 };

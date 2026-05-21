@@ -1,4 +1,3 @@
-import { redirect, type Handle } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma'; // Asumiendo que instancias Prisma aquí
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -39,9 +38,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Protección de Rutas (Ejemplo: Proteger todo lo que empiece con /dashboard)
-	if (event.url.pathname.startsWith('/dashboard') && !event.locals.user) {
+	/*if (event.url.pathname.startsWith('/dashboard') && !event.locals.user) {
 		throw redirect(303, '/auth');
 	}
-
+*/
 	return resolve(event);
 };
