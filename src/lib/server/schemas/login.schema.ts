@@ -21,5 +21,5 @@ export const registerTechSchema = z.object({
 	contrasena: z.string().min(6, { message: 'Mínimo 6 caracteres' }),
 	nombre: z.string().min(2, { message: 'El nombre es obligatorio' }),
 	telefono: z.string().optional(),
-	categoriaId: z.string().min(1, { message: 'Debes seleccionar una categoría' })
+	especializacionId: z.string().min(1, { message: 'Debes seleccionar una especialización' })
 });

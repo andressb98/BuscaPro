@@ -1,35 +1,46 @@
-import type { Handle } from '@sveltejs/kit';
-import { prisma } from '$lib/server/prisma';
+import { redirect, type Handle } from '@sveltejs/kit';
+import { prisma } from '$lib/server/prisma'; // Asumiendo que instancias Prisma aquí
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get('session_id');
 
-	if (sessionId) {
-		const user = await prisma.usuario.findUnique({
+	if (!sessionId) {
+		event.locals.user = null;
+	} else {
+		// Buscamos al usuario e incluimos sus perfiles si existen
+		const usuario = await prisma.usuario.findUnique({
 			where: { id: sessionId },
-			// Solo traemos los datos necesarios, NUNCA la contraseña
 			select: {
 				id: true,
 				correo: true,
-				cliente: { select: { id: true, nombre: true } },
-				tecnico: { select: { id: true, nombre: true, estaVerificado: true } }
+				cliente: true,
+				tecnico: true
 			}
 		});
 
-		if (user) {
-			event.locals.user = user;
+		if (usuario) {
+			// Determinamos el rol dinámicamente y mapeamos los datos
+			const esCliente = !!usuario.cliente;
+			event.locals.user = {
+				id: usuario.id,
+				correo: usuario.correo,
+				rol: esCliente ? 'cliente' : 'tecnico',
+				perfil: {
+					nombre: (usuario.cliente?.nombre || usuario.tecnico?.nombre) as string,
+					telefono: (usuario.cliente?.telefono || usuario.tecnico?.telefono) as string,
+					estaVerificado: usuario.tecnico?.estaVerificado
+				}
+			};
 		} else {
-			// Cookie inválida o usuario eliminado
+			// Si la cookie existe pero el usuario no (fue borrado de DB)
+			event.locals.user = null;
 			event.cookies.delete('session_id', { path: '/' });
 		}
 	}
 
-	// Middleware de protección de rutas privadas
-	if (event.url.pathname.startsWith('/dashboard') || event.url.pathname.startsWith('/perfil')) {
-		if (!event.locals.user) {
-			return new Response('Redirigiendo...', { status: 303, headers: { Location: '/auth' } });
-		}
-		// Podrías agregar más lógica aquí (ej. si requiere rol de Técnico para ciertas rutas)
+	// Protección de Rutas (Ejemplo: Proteger todo lo que empiece con /dashboard)
+	if (event.url.pathname.startsWith('/dashboard') && !event.locals.user) {
+		throw redirect(303, '/auth');
 	}
 
 	return resolve(event);

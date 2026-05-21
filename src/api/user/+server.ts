@@ -1,62 +1,83 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import prisma from '$lib/server/prisma';
+import { prisma } from '$lib/server/prisma';
+import bcrypt from 'bcrypt';
+import { registerTechSchema } from '$lib/server/schemas/register.schema';
 
-// LEER (GET) - Obtener usuario por ID o lista de usuarios
-export const GET: RequestHandler = async ({ url, locals }) => {
-	// Protección básica del endpoint
-	if (!locals.user) return json({ error: 'No autorizado' }, { status: 401 });
-
-	const id = url.searchParams.get('id');
-
+export const POST: RequestHandler = async ({ request }) => {
 	try {
-		if (id) {
-			const usuario = await prisma.usuario.findUnique({
-				where: { id },
-				select: { id: true, correo: true, cliente: true, tecnico: true }
-			});
-			return json(usuario);
+		const data = await request.json();
+		const parsed = registerTechSchema.safeParse(data);
+
+		if (!parsed.success) {
+			return json(
+				{ success: false, errors: parsed.error.flatten().fieldErrors },
+				{ status: 400 }
+			);
 		}
-		
-		// Endpoint escalable: considerar paginación aquí en el futuro
-		const usuarios = await prisma.usuario.findMany({
-			select: { id: true, correo: true, fechaCreacion: true }
+
+		const {
+			correo,
+			contrasena,
+			nombre,
+			telefono,
+			especializacionId,
+			direccion,
+			gradoEscolar,
+			experiencia,
+			urlIdentificacion
+		} = parsed.data;
+
+		// Verificamos si el correo ya está en uso
+		const existe = await prisma.usuario.findUnique({ where: { correo } });
+		if (existe) {
+			return json({ success: false, error: 'El correo ya está registrado.' }, { status: 400 });
+		}
+
+		// Validamos que la especialización ingresada exista
+		const espExiste = await prisma.especializacion.findUnique({ where: { id: especializacionId } });
+		if (!espExiste) {
+			return json({ success: false, error: 'Especialización inválida.' }, { status: 400 });
+		}
+
+		const hashedContrasena = await bcrypt.hash(contrasena, 12);
+		const rol= 'TECNICO'; // Aseguramos que el rol sea técnico desde el backend
+		console.log('Creando usuario técnico con datos):', {
+			correo,
+			nombre,
+			telefono,
+			direccion,
+			formacion: gradoEscolar,
+			experiencia,
+			especializacionId,
+			urlIdentificacionOficial: urlIdentificacion,
+			estaVerificado: false
 		});
-		return json(usuarios);
-	} catch (error) {
-		return json({ error: 'Error al consultar la base de datos' }, { status: 500 });
-	}
-};
+		console.log('Rol asignado para nuevo usuario:', rol);
 
-// ACTUALIZAR (PUT)
-export const PUT: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user) return json({ error: 'No autorizado' }, { status: 401 });
-
-	const data = await request.json();
-	const { id, correo } = data; // Ajustar campos permitidos
-
-	try {
-		const usuarioActualizado = await prisma.usuario.update({
-			where: { id },
-			data: { correo },
-			select: { id: true, correo: true }
+		const nuevoUsuario = await prisma.usuario.create({
+			data: {
+				correo,
+				contrasena: hashedContrasena,
+				rol: rol, // Se asigna de forma segura desde el backend
+				tecnico: {
+					create: {
+						nombre,
+						telefono,
+						direccion,
+						formacion: gradoEscolar,
+						experiencia,
+						especializacionId,
+						urlIdentificacionOficial: urlIdentificacion,
+						estaVerificado: false
+					}
+				}
+			}
 		});
-		return json(usuarioActualizado);
+
+		return json({ success: true, userId: nuevoUsuario.id }, { status: 201 });
 	} catch (error) {
-		return json({ error: 'Error al actualizar' }, { status: 500 });
-	}
-};
-
-// BORRAR (DELETE)
-export const DELETE: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user) return json({ error: 'No autorizado' }, { status: 401 });
-
-	const { id } = await request.json();
-
-	try {
-		await prisma.usuario.delete({ where: { id } });
-		return json({ success: true, message: 'Usuario eliminado' });
-	} catch (error) {
-		return json({ error: 'Error al eliminar' }, { status: 500 });
+		console.error('API Registro Técnico Error:', error);
+		return json({ success: false, error: 'Error interno del servidor.' }, { status: 500 });
 	}
 };

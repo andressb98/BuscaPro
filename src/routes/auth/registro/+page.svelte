@@ -1,119 +1,252 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import type { ActionData, PageData } from './$types';
+    import { enhance } from '$app/forms';
 
-	let { form, data }: { form: ActionData; data: PageData } = $props();
+    // Svelte 5 Runes
+    let { data, form } = $props();
 
-	// Estado reactivo en Svelte 5 para el control de vistas aisladas
-	let view = $state<'login' | 'registerClient' | 'registerTecnico'>('login');
+    // Estado reactivo para la vista actual
+    let view = $state<'login' | 'register_client' | 'register_tecnico'>('login');
+    let selectedEspecializacion = $state(""); // Inicializa explícitamente
+
+    // Derivados para limpiar el código de UI
+    let isClientError = $derived(form?.formName === 'client');
+    let isTechError = $derived(form?.formName === 'tecnico');
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-	<div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-		
-		<!-- Selector de Navegación Aislada -->
-		<div class="flex flex-col gap-2 border-b pb-4 mb-6">
-			<h2 class="text-center text-3xl font-extrabold text-gray-900 mb-4">
-				{#if view === 'login'} Iniciar Sesión 
-				{:else if view === 'registerClient'} Portal de Clientes
-				{:else} Portal para Técnicos {/if}
-			</h2>
-			
-			<div class="grid grid-cols-3 gap-2">
-				<button onclick={() => view = 'login'} class="text-sm font-medium p-2 rounded-md transition-colors {view === 'login' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">Ingresar</button>
-				<button onclick={() => view = 'registerClient'} class="text-sm font-medium p-2 rounded-md transition-colors {view === 'registerClient' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">Soy Cliente</button>
-				<button onclick={() => view = 'registerTecnico'} class="text-sm font-medium p-2 rounded-md transition-colors {view === 'registerTecnico' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">Soy Técnico</button>
-			</div>
-		</div>
+<div class="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {#if view === 'login'}
+                Iniciar Sesión
+            {:else if view === 'register_client'}
+                Registro de Cliente
+            {:else}
+                Registro de Técnico
+            {/if}
+        </h2>
+    </div>
 
-		{#if form?.formError}
-			<div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-				<p class="text-sm text-red-700">{form.formError}</p>
-			</div>
-		{/if}
+    <div
+        class="mt-8 bg-white px-4 py-8 shadow sm:mx-auto sm:w-full sm:max-w-md sm:rounded-lg sm:px-10"
+    >
+        <!-- Selector de vistas (Pestañas) -->
+        <div class="mb-6 flex justify-between border-b pb-4 text-sm">
+            <button
+                class="font-medium {view === 'login'
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-500'}"
+                onclick={() => (view = 'login')}>Login</button
+            >
+            <button
+                class="font-medium {view === 'register_client'
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-500'}"
+                onclick={() => (view = 'register_client')}>Soy Cliente</button
+            >
+            <button
+                class="font-medium {view === 'register_tecnico'
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'text-gray-500'}"
+                onclick={() => (view = 'register_tecnico')}>Soy Técnico</button
+            >
+        </div>
 
-		<!-- FLUJO 1: LOGIN -->
-		{#if view === 'login'}
-			<form method="POST" action="?/login" use:enhance class="space-y-4">
-				<div>
-					<label for="correo" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-					<input id="correo" name="correo" type="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-				</div>
-				<div>
-					<label for="contrasena" class="block text-sm font-medium text-gray-700">Contraseña</label>
-					<input id="contrasena" name="contrasena" type="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-				</div>
-				<button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-					Ingresar al Sistema
-				</button>
-			</form>
-		{/if}
+        <!-- Formulario Cliente -->
+        {#if view === 'register_client'}
+            <form method="POST" action="?/registerClient" use:enhance class="space-y-4">
+                {#if isClientError && form?.error}
+                    <div class="rounded bg-red-50 p-2 text-sm text-red-500">{form.error}</div>
+                {/if}
 
-		<!-- FLUJO 2: REGISTRO CLIENTE (Estrictamente separado) -->
-		{#if view === 'registerClient'}
-			<form method="POST" action="?/registerClient" use:enhance class="space-y-4">
-				<div>
-					<label for="nombre_c" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
-					<input id="nombre_c" name="nombre" type="text" value={form?.clientData?.nombre || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" />
-					{#if form?.errors?.nombre} <p class="text-xs text-red-500 mt-1">{form.errors.nombre[0]}</p> {/if}
-				</div>
-				<div>
-					<label for="correo_c" class="block text-sm font-medium text-gray-700">Correo</label>
-					<input id="correo_c" name="correo" type="email" value={form?.clientData?.correo || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<div>
-					<label for="telefono_c" class="block text-sm font-medium text-gray-700">Teléfono</label>
-					<input id="telefono_c" name="telefono" type="tel" value={form?.clientData?.telefono || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<div>
-					<label for="direccion_c" class="block text-sm font-medium text-gray-700">Dirección</label>
-					<input id="direccion_c" name="direccion" type="text" value={form?.clientData?.direccion || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<div>
-					<label for="contrasena_c" class="block text-sm font-medium text-gray-700">Contraseña</label>
-					<input id="contrasena_c" name="contrasena" type="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" />
-				</div>
-				<button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-					Crear Cuenta de Cliente
-				</button>
-			</form>
-		{/if}
+                <div>
+                    <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre completo</label>
+                    <input
+                        id="nombre"
+                        name="nombre"
+                        type="text"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
 
-		<!-- FLUJO 3: REGISTRO TÉCNICO (Estrictamente separado) -->
-		{#if view === 'registerTecnico'}
-			<form method="POST" action="?/registerTecnico" use:enhance class="space-y-4">
-				<div>
-					<label for="nombre_t" class="block text-sm font-medium text-gray-700">Nombre del Especialista</label>
-					<input id="nombre_t" name="nombre" type="text" value={form?.techData?.nombre || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" />
-				</div>
-				<div>
-					<label for="correo_t" class="block text-sm font-medium text-gray-700">Correo Profesional</label>
-					<input id="correo_t" name="correo" type="email" value={form?.techData?.correo || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" />
-				</div>
-				<div>
-					<label for="telefono_t" class="block text-sm font-medium text-gray-700">Teléfono de Contacto</label>
-					<input id="telefono_t" name="telefono" type="tel" value={form?.techData?.telefono || ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" />
-				</div>
-				
-				<!-- Select alimentado desde el Server Load -->
-				<div>
-					<label for="categoriaId" class="block text-sm font-medium text-gray-700">Categoría de Servicio</label>
-					<select id="categoriaId" name="categoriaId" class="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500">
-						<option value="" disabled selected>Seleccione una especialidad</option>
-						{#each data.categorias as cat}
-							<option value={cat.id}>{cat.nombre}</option>
-						{/each}
-					</select>
-				</div>
+                <div>
+                    <label for="correo" class="block text-sm font-medium text-gray-700">Correo</label>
+                    <input
+                        id="correo"
+                        name="correo"
+                        type="email"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
 
-				<div>
-					<label for="contrasena_t" class="block text-sm font-medium text-gray-700">Contraseña</label>
-					<input id="contrasena_t" name="contrasena" type="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" />
-				</div>
-				<button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
-					Solicitar Ingreso como Técnico
-				</button>
-			</form>
-		{/if}
-	</div>
+                <div>
+                    <label for="telefono" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                    <input
+                        id="telefono"
+                        name="telefono"
+                        type="tel"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección</label>
+                    <input
+                        id="direccion"
+                        name="direccion"
+                        type="text"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="contrasena" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input
+                        id="contrasena"
+                        name="contrasena"
+                        type="password"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    class="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                >
+                    Registrar Cliente
+                </button>
+            </form>
+
+            <!-- Formulario Técnico -->
+        {:else if view === 'register_tecnico'}
+            <form method="POST" action="?/registerTecnico" use:enhance class="space-y-4">
+                {#if isTechError && form?.error}
+                    <div class="rounded bg-red-50 p-2 text-sm text-red-500">{form.error}</div>
+                {/if}
+
+                <div>
+                    <label for="nombreTech" class="block text-sm font-medium text-gray-700">Nombre completo</label>
+                    <input
+                        id="nombreTech"
+                        name="nombre"
+                        type="text"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="correoTech" class="block text-sm font-medium text-gray-700">Correo</label>
+                    <input
+                        id="correoTech"
+                        name="correo"
+                        type="email"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="telefonoTech" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                    <input
+                        id="telefonoTech"
+                        name="telefono"
+                        type="tel"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <!-- Nuevos campos para el Técnico -->
+                <div>
+                    <label for="gradoEscolar" class="block text-sm font-medium text-gray-700">Grado Escolar</label>
+                    <select 
+                        id="gradoEscolar" 
+                        name="gradoEscolar" 
+                        required 
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                        <option value="" disabled selected>Seleccione su nivel de estudios</option>
+                        <option value="secundaria">Secundaria</option>
+                        <option value="preparatoria">Preparatoria / Bachillerato</option>
+                        <option value="tecnico">Carrera Técnica</option>
+                        <option value="licenciatura">Licenciatura / Ingeniería</option>
+                        <option value="maestria">Maestría</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="experiencia" class="block text-sm font-medium text-gray-700">Años de experiencia</label>
+                    <input
+                        id="experiencia"
+                        name="experiencia"
+                        type="number"
+                        min="0"
+                        max="50"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="especializacionId" class="block text-sm font-medium text-gray-700">Especialidad</label>
+                    <select 
+                        id="especializacionId" 
+                        name="especializacionId" 
+                        bind:value={selectedEspecializacion} 
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                        <option value="" disabled>Seleccione una especialidad</option>
+                        {#if data?.especializaciones}
+                            {#each data.especializaciones as esp}
+                                <option value={esp.id}>{esp.nombre}</option>
+                            {/each}
+                        {/if}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="urlIdentificacion" class="block text-sm font-medium text-gray-700">URL de Identificación Oficial (INE, Pasaporte, etc.)</label>
+                    <input
+                        id="urlIdentificacion"
+                        name="urlIdentificacion"
+                        type="url"
+                        placeholder="https://ejemplo.com/documento.pdf"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+                <!-- Fin de nuevos campos -->
+
+                <div>
+                    <label for="contrasenaTech" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input
+                        id="contrasenaTech"
+                        name="contrasena"
+                        type="password"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    class="flex w-full justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
+                >
+                    Registrar Técnico
+                </button>
+            </form>
+
+            <!-- (Login Form) -->
+        {:else}
+            <div class="text-center text-sm text-gray-500">
+                Formulario de Login pendiente de implementar.
+            </div>
+        {/if}
+    </div>
 </div>

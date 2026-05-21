@@ -14,14 +14,12 @@ model Usuario {
   id                 String   @id @default(uuid())
   correo             String   @unique
   contrasena         String
+  rol                String   // <-- NUEVO: Ej. "CLIENTE", "TECNICO", "ADMIN"
   fechaCreacion      DateTime @default(now())
   fechaActualizacion DateTime @updatedAt
-
-  // Separación estricta de rutas de registro: Relaciones 1 a 1
+  
   cliente            Cliente?
   tecnico            Tecnico?
-
-  // Relaciones para chat y calificaciones
   mensajes                Mensaje[]
   calificacionesDadas     Calificacion[] @relation("AutorCalificacion")
   calificacionesRecibidas Calificacion[] @relation("DestinatarioCalificacion")
@@ -57,15 +55,15 @@ model Tecnico {
   experiencia              String?  // Experiencia
   estaVerificado           Boolean  @default(false) // Para "Validar Registro"
   
-  categoriaId              String
-  categoria                Categoria @relation(fields: [categoriaId], references: [id])
+  especializacionId        String
+  especializacion          Especializacion @relation(fields: [especializacionId], references: [id])
   
   citas                    Cita[]
   sesionesChat             SesionChat[]
 }
 
-// 4. CATÁLOGO DE CATEGORÍAS (Buscador Unificado)
-model Categoria {
+// 4. CATÁLOGO DE ESPECIALIZACIONES (Buscador Unificado)
+model Especializacion {
   id          String    @id @default(uuid())
   nombre      String    @unique
   descripcion String?

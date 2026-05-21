@@ -76,7 +76,7 @@ export const actions: Actions = {
 
 		if (!result.success) return fail(400, { errors: result.error.flatten().fieldErrors });
 
-		const { correo, contrasena, nombre, telefono, categoriaId } = result.data;
+		const { correo, contrasena, nombre, telefono, especializacionId } = result.data;
 		const hashedContrasena = await bcrypt.hash(contrasena, 12);
 
 		try {
@@ -85,7 +85,7 @@ export const actions: Actions = {
 					correo,
 					contrasena: hashedContrasena,
 					tecnico: {
-						create: { nombre, telefono, categoriaId, estaVerificado: false }
+						create: { nombre, telefono, especializacionId, estaVerificado: false }
 					}
 				}
 			});

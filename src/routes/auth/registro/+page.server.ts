@@ -2,20 +2,14 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
-import { registerClientSchema, registerTechSchema } from '$lib/server/schemas/register.schemas';
-
+import { registerClientSchema, registerTechSchema } from '$lib/server/schemas/register.schema';
 export const load: PageServerLoad = async ({ locals }) => {
 	// Si ya está logueado, redirigir
-	if (locals.user) {
-		throw redirect(303, '/dashboard');
-	}
+	if (locals.user) throw redirect(303, '/dashboard');
 	
-	// Pre-cargar categorías para el formulario de técnicos
-	const categorias = await prisma.categoria.findMany({
-		select: { id: true, nombre: true }
-	});
-	
-	return { categorias };
+	// Aquí podrías cargar las especializaciones para el select de técnicos
+	const especializaciones = await prisma.especializacion.findMany();
+	return { especializaciones };
 };
 
 export const actions: Actions = {
@@ -24,80 +18,127 @@ export const actions: Actions = {
 		const parsed = registerClientSchema.safeParse(formData);
 
 		if (!parsed.success) {
-			return fail(400, { formError: 'Datos inválidos', errors: parsed.error.flatten().fieldErrors, clientData: formData });
+			return fail(400, { formName: 'client', errors: parsed.error.flatten().fieldErrors });
 		}
 
-		const { correo, contrasena, nombre, telefono, direccion } = parsed.data;
+		console.log('Datos recibidos para registro cliente:', parsed.data);
+
+		const { correo, contrasena, nombre, telefono, direccion, urlIdentificacionOficial } = parsed.data;
 
 		try {
-			const userExists = await prisma.usuario.findUnique({ where: { correo } });
-			if (userExists) return fail(400, { formError: 'El correo ya está registrado', clientData: formData });
+			// Verificar si existe el correo
+			const existe = await prisma.usuario.findUnique({ where: { correo } });
+			if (existe) return fail(400, { formName: 'client', error: 'El correo ya está registrado.' });
 
-			const hashedPassword = await bcrypt.hash(contrasena, 12);
+			const hashedContrasena = await bcrypt.hash(contrasena, 12);
 
-			// Inserción anidada: Usuario + Cliente
+			// Prisma Nested Insert (Transacción automática)
 			const nuevoUsuario = await prisma.usuario.create({
 				data: {
 					correo,
-					contrasena: hashedPassword,
+					contrasena: hashedContrasena,
+					rol: 'CLIENTE',
 					cliente: {
-						create: { nombre, telefono, direccion }
+						create: {
+							nombre,
+							telefono,
+							direccion,
+							urlIdentificacionOficial
+						}
 					}
 				}
 			});
 
-			cookies.set('session_id', nuevoUsuario.id, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 7 });
+			// Setear cookie HttpOnly
+			cookies.set('session_id', nuevoUsuario.id, {
+				path: '/',
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				maxAge: 60 * 60 * 24 * 7 // 1 semana
+			});
+
 		} catch (error) {
-			console.error(error);
-			return fail(500, { formError: 'Error interno del servidor' });
+			return fail(500, { formName: 'client', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '/dashboard');
+		throw redirect(303, '/completar_perfil');
 	},
+	
 
 	registerTecnico: async ({ request, cookies }) => {
 		const formData = Object.fromEntries(await request.formData());
 		const parsed = registerTechSchema.safeParse(formData);
 
 		if (!parsed.success) {
-			return fail(400, { formError: 'Datos inválidos', errors: parsed.error.flatten().fieldErrors, techData: formData });
+			return fail(400, { formName: 'tecnico', errors: parsed.error.flatten().fieldErrors });
 		}
 
-		const { correo, contrasena, nombre, telefono, categoriaId } = parsed.data;
+		const {
+			correo,
+			contrasena,
+			nombre,
+			telefono,
+			especializacionId,
+			direccion,
+			gradoEscolar,
+			experiencia,
+			urlIdentificacion
+		} = parsed.data;
 
 		try {
-			// Validación de regla de negocio: ¿Existe la categoría?
-			const catExists = await prisma.categoria.findUnique({ where: { id: categoriaId } });
-			if (!catExists) return fail(400, { formError: 'Categoría no válida', techData: formData });
+			const existe = await prisma.usuario.findUnique({ where: { correo } });
+			if (existe) return fail(400, { formName: 'tecnico', error: 'El correo ya está registrado.' });
 
-			const userExists = await prisma.usuario.findUnique({ where: { correo } });
-			if (userExists) return fail(400, { formError: 'El correo ya está registrado', techData: formData });
+			// Validar existencia de especialización (Obligatorio por regla de negocio)
+			const espExiste = await prisma.especializacion.findUnique({ where: { id: especializacionId } });
+			if (!espExiste) return fail(400, { formName: 'tecnico', error: 'Especialización inválida.' });
 
-			const hashedPassword = await bcrypt.hash(contrasena, 12);
+			const hashedContrasena = await bcrypt.hash(contrasena, 12);
 
-			// Inserción anidada: Usuario + Técnico
+			console.log('Creando usuario técnico con datos):', {
+				correo,
+				nombre,
+				telefono,
+				direccion,
+				formacion: gradoEscolar,
+				experiencia,
+				especializacionId,
+				estaVerificado: false
+			});
+
+			// Prisma Nested Insert
+
 			const nuevoUsuario = await prisma.usuario.create({
 				data: {
 					correo,
-					contrasena: hashedPassword,
+					contrasena: hashedContrasena,
+					rol: 'TECNICO',
 					tecnico: {
-						create: { nombre, telefono, categoriaId, estaVerificado: false }
+						create: {
+							nombre,
+							telefono,
+							direccion,
+							formacion: gradoEscolar,
+							experiencia,
+							especializacionId,
+							urlIdentificacionOficial: urlIdentificacion,
+							estaVerificado: false
+						}
 					}
 				}
 			});
 
-			cookies.set('session_id', nuevoUsuario.id, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 7 });
+			cookies.set('session_id', nuevoUsuario.id, {
+				path: '/',
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				maxAge: 60 * 60 * 24 * 7
+			});
+
 		} catch (error) {
-			console.error(error);
-			return fail(500, { formError: 'Error interno del servidor' });
+			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });
 		}
 
 		throw redirect(303, '/dashboard');
-	},
-
-	login: async ({ request, cookies }) => {
-        // Lógica estándar de login con bcrypt.compare...
-        // (Omitido por brevedad, sigue el mismo patrón de validación y seteo de cookie)
-        return fail(501, { formError: 'Login no implementado en este snippet' });
-    }
+	}
 };

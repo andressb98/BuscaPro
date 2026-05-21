@@ -7,8 +7,12 @@ declare global {
 			user: {
 				id: string;
 				correo: string;
-				cliente: { nombre: string; telefono: string; direccion: string } | null;
-				tecnico: { nombre: string; telefono: string; estaVerificado: boolean } | null;
+				rol: 'cliente' | 'tecnico';
+				perfil: {
+					nombre: string;
+					telefono: string;
+					estaVerificado?: boolean; // Solo para técnicos
+				};
 			} | null;
 		}
 		// interface PageData {}
