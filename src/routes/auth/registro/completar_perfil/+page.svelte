@@ -12,7 +12,7 @@
 <div class="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
   <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Completa tu Perfil en BuscaPro</h1>
 
-  {#if data.usuario.rol === 'TECNICO'}
+  {#if data.user.rol === 'tecnico'}
     <!-- BLOQUE DEL TÉCNICO -->
     <div class="mb-4">
       <h2 class="text-xl font-semibold text-blue-600">Perfil de Especialista</h2>
@@ -31,18 +31,6 @@
           <input type="tel" name="telefono" value={form?.data?.telefono ?? ''} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
           {#if form?.errors?.telefono}<p class="text-red-500 text-xs mt-1">{form.errors.telefono[0]}</p>{/if}
         </div>
-        
-        <div>
-          <label for="especializacionId" class="block text-sm font-medium text-gray-700">Especialidad Principal</label>
-          <select name="especializacionId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-            <option value="">Selecciona una...</option>
-            {#each data.especializaciones as esp}
-              <option value={esp.id}>{esp.nombre}</option>
-            {/each}
-          </select>
-          {#if form?.errors?.especializacionId}<p class="text-red-500 text-xs mt-1">{form.errors.especializacionId[0]}</p>{/if}
-        </div>
-      </div>
 
       <div>
         <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección Operativa</label>
@@ -64,7 +52,7 @@
       </button>
     </form>
 
-  {:else if data.usuario.rol === 'CLIENTE'}
+  {:else if data.user.rol === 'cliente'}
     <!-- BLOQUE DEL CLIENTE -->
     <div class="mb-4">
       <h2 class="text-xl font-semibold text-green-600">Perfil de Cliente</h2>

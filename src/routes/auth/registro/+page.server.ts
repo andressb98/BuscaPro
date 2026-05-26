@@ -14,6 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	registerClient: async ({ request, cookies }) => {
+		console.log('Iniciando proceso de registro para cliente...');
 		const formData = Object.fromEntries(await request.formData());
 		const parsed = registerClientSchema.safeParse(formData);
 
@@ -139,6 +140,6 @@ export const actions: Actions = {
 			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '/dashboard');
+		throw redirect(303, '../../public/tecnicos');
 	}
 };
