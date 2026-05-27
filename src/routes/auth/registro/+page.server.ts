@@ -4,6 +4,7 @@ import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
 import { registerClientSchema, registerTechSchema } from '$lib/server/schemas/register.schema';
 import { loginSchema } from '$lib/server/schemas/login.schema';
+import { dev } from '$app/environment';
 export const load: PageServerLoad = async ({ locals }) => {
 	// Si ya está logueado, redirigir
 	if (locals.user) {
@@ -36,11 +37,11 @@ export const actions: Actions = {
 			}
 
 			// Establecer sesión
-			cookies.set('session_id', usuario.id, {
+			cookies.set('session_id', String(usuario.id), {
 				path: '/',
 				httpOnly: true,
 				sameSite: 'strict',
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7 // 1 semana
 			});
 
@@ -91,10 +92,10 @@ export const actions: Actions = {
 			});
 
 			// Setear cookie HttpOnly
-			cookies.set('session_id', nuevoUsuario.id, {
+			cookies.set('session_id', String(nuevoUsuario.id), {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7 // 1 semana
 			});
 
@@ -170,10 +171,10 @@ export const actions: Actions = {
 				}
 			});
 
-			cookies.set('session_id', nuevoUsuario.id, {
+			cookies.set('session_id', String(nuevoUsuario.id), {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7
 			});
 
