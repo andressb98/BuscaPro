@@ -41,6 +41,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (event.url.pathname.startsWith('/dashboard') && !event.locals.user) {
 		throw redirect(303, '/auth');
 	}
-*/
 	return resolve(event);
 };
