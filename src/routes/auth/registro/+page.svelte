@@ -11,6 +11,7 @@
     // Derivados para limpiar el código de UI
     let isClientError = $derived(form?.formName === 'client');
     let isTechError = $derived(form?.formName === 'tecnico');
+    let isLoginError = $derived(form?.formName === 'login');
 </script>
 
 <div class="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
@@ -244,9 +245,40 @@
 
             <!-- (Login Form) -->
         {:else}
-            <div class="text-center text-sm text-gray-500">
-                Formulario de Login pendiente de implementar.
-            </div>
+            <form method="POST" action="?/login" use:enhance class="space-y-4">
+                {#if isLoginError && form?.error}
+                    <div class="rounded bg-red-50 p-2 text-sm text-red-500">{form.error}</div>
+                {/if}
+
+                <div>
+                    <label for="correoLogin" class="block text-sm font-medium text-gray-700">Correo</label>
+                    <input
+                        id="correoLogin"
+                        name="correo"
+                        type="email"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label for="contrasenaLogin" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input
+                        id="contrasenaLogin"
+                        name="contrasena"
+                        type="password"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    class="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                >
+                    Entrar
+                </button>
+            </form>
         {/if}
     </div>
 </div>

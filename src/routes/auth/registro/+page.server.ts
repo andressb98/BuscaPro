@@ -3,9 +3,13 @@ import type { Actions, PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
 import { registerClientSchema, registerTechSchema } from '$lib/server/schemas/register.schema';
+import { loginSchema } from '$lib/server/schemas/login.schema';
 export const load: PageServerLoad = async ({ locals }) => {
 	// Si ya está logueado, redirigir
-	if (locals.user) throw redirect(303, '/dashboard');
+	if (locals.user) {
+		const redirectUrl = locals.user.rol === 'cliente' ? '/public/clientes' : '/public/tecnicos';
+		throw redirect(303, redirectUrl);
+	}
 	
 	// Aquí podrías cargar las especializaciones para el select de técnicos
 	const especializaciones = await prisma.especializacion.findMany();
@@ -13,6 +17,42 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	login: async ({ request, cookies }) => {
+		const formData = Object.fromEntries(await request.formData());
+		const parsed = loginSchema.safeParse(formData);
+
+		if (!parsed.success) {
+			return fail(400, { formName: 'login', errors: parsed.error.flatten().fieldErrors });
+		}
+
+		const { correo, contrasena } = parsed.data;
+		let redirectUrl = '/';
+
+		try {
+			const usuario = await prisma.usuario.findUnique({ where: { correo } });
+
+			if (!usuario || !(await bcrypt.compare(contrasena, usuario.contrasena))) {
+				return fail(401, { formName: 'login', error: 'Credenciales inválidas' });
+			}
+
+			// Establecer sesión
+			cookies.set('session_id', usuario.id, {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'strict',
+				secure: process.env.NODE_ENV === 'production',
+				maxAge: 60 * 60 * 24 * 7 // 1 semana
+			});
+
+			// Definir la ruta dependiendo de si es Técnico o Cliente (según el valor de DB)
+			redirectUrl = usuario.rol.toUpperCase() === 'CLIENTE' ? '/public/clientes' : '/public/tecnicos';
+		} catch (error) {
+			return fail(500, { formName: 'login', error: 'Error interno del servidor.' });
+		}
+
+		throw redirect(303, redirectUrl);
+	},
+
 	registerClient: async ({ request, cookies }) => {
 		const formData = Object.fromEntries(await request.formData());
 		const parsed = registerClientSchema.safeParse(formData);
@@ -37,7 +77,7 @@ export const actions: Actions = {
 				data: {
 					correo,
 					contrasena: hashedContrasena,
-					rol: 'CLIENTE',
+					rol: 'Cliente',
 					cliente: {
 						create: {
 							nombre,
@@ -58,10 +98,11 @@ export const actions: Actions = {
 			});
 
 		} catch (error) {
+			console.error('Error al registrar cliente:', error);
 			return fail(500, { formName: 'client', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '/completar_perfil');
+		throw redirect(303, '/public/clientes');
 	},
 	
 
@@ -112,7 +153,7 @@ export const actions: Actions = {
 				data: {
 					correo,
 					contrasena: hashedContrasena,
-					rol: 'TECNICO',
+					rol: 'Tecnico',
 					tecnico: {
 						create: {
 							nombre,
@@ -136,9 +177,10 @@ export const actions: Actions = {
 			});
 
 		} catch (error) {
+			console.error('Error al registrar técnico:', error);
 			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '../../public/tecnicos');
+		throw redirect(303, '/public/tecnicos');
 	}
 };

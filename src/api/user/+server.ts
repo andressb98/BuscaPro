@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import type { RequestHandler } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
 import { registerTechSchema } from '$lib/server/schemas/register.schema';
@@ -41,7 +41,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		const hashedContrasena = await bcrypt.hash(contrasena, 12);
-		const rol= 'TECNICO'; // Aseguramos que el rol sea técnico desde el backend
 		console.log('Creando usuario técnico con datos):', {
 			correo,
 			nombre,
