@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 export type UserContext = {
 	id: string;
 	correo: string;
-	rol: 'CLIENTE' | 'TECNICO' | 'ADMIN';
+	rol: 'Cliente' | 'Tecnico' | 'Admin';
 	perfil: any; // Datos del perfil específico (nombre, telefono, etc.)
 } | null;
 
