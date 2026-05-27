@@ -1,15 +1,13 @@
 <script lang="ts">
-  // Estado inicial del cascarón usando Runes de Svelte 5
-  let nombreCliente = $state("Nombre del Cliente");
-  
-  let stats = $state({
-    activas: 0,
-    completados: 0,
-    favoritos: 0
-  });
+  let { data } = $props();
 
-  // Lista de solicitudes (vacía por ahora para mostrar el diseño inicial)
-  let misSolicitudes: any[] = $state([]);
+  // Estado derivado de los datos del servidor usando Runes de Svelte 5
+  let nombreCliente = $derived(data.cliente.nombre);
+  let stats = $derived(data.stats);
+
+  // Listas reales de la base de datos
+  let misSolicitudes = $derived(data.misSolicitudes);
+  let tecnicosRecomendados = $derived(data.tecnicosRecomendados);
 </script>
 
 <div class="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -114,12 +112,58 @@
         {:else}
         <!-- Lista con datos -->
         <ul class="divide-y divide-gray-100">
-          <!-- Aquí irá el {#each} cuando tengas datos -->
+          {#each misSolicitudes as solicitud (solicitud.id)}
+            <li class="p-4 hover:bg-gray-50 flex justify-between items-center transition-colors">
+              <div>
+                <p class="text-sm font-medium text-gray-800">Técnico: {solicitud.tecnicoNombre}</p>
+                <p class="text-xs text-gray-500">
+                  {new Date(solicitud.fechaProgramada).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {solicitud.estado}
+                </span>
+              </div>
+            </li>
+          {/each}
         </ul>
         {/if}
-        
       </div>
-      
-    </div>
-  </main>
+
+      <!-- Nueva sección: Técnicos Disponibles / Recomendados -->
+      <div class="mt-8">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-800">Técnicos Recomendados</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {#each tecnicosRecomendados as tecnico (tecnico.id)}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col hover:shadow-md transition-shadow">
+              <div class="flex items-center space-x-4 mb-4">
+                <div class="h-12 w-12 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-gray-500 font-bold">
+                  {tecnico.nombre.charAt(0)}
+                </div>
+                <div>
+                  <h4 class="text-md font-bold text-gray-900">{tecnico.nombre}</h4>
+                  <p class="text-sm text-green-600 font-medium">{tecnico.especialidad}</p>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mb-4 line-clamp-2">
+                Experiencia: {tecnico.experiencia} años. Especialista listo para ayudarte con tu próximo proyecto en casa o empresa.
+              </p>
+              <div class="mt-auto flex items-center justify-between">
+                <span class="flex items-center text-sm text-yellow-500 font-medium">
+                  ★ {tecnico.calificacion}
+                </span>
+                <button class="px-3 py-1.5 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 transition-colors">
+                  Ver Perfil
+                </button>
+              </div>
+            </div>
+          {/each}
+          </div>
+        </div>
+      </div>
+    </main>
 </div>

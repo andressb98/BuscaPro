@@ -1,17 +1,15 @@
 <script lang="ts">
-  // Estado inicial del cascarón usando Runes de Svelte 5
-  let nombreTecnico = $state("Nombre del Técnico");
-  let especialidad = $state("Plomero");
+  let { data } = $props();
+
+  // Estado derivado de los datos del servidor usando Runes de Svelte 5
+  let nombreTecnico = $derived(data.tecnico.nombre);
+  let especialidad = $derived(data.tecnico.especialidad);
   let estaDisponible = $state(true);
 
-  let stats = $state({
-    nuevas: 0,
-    completados: 0,
-    calificacion: "0.0"
-  });
+  let stats = $derived(data.stats);
 
-  // Lista de solicitudes (vacía por ahora para mostrar el diseño inicial)
-  let solicitudesRecientes: any[] = $state([]);
+  // Lista de solicitudes reales de la base de datos
+  let solicitudesRecientes = $derived(data.solicitudesRecientes);
 </script>
 
 <div class="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -129,7 +127,21 @@
         {:else}
         <!-- Lista con datos -->
         <ul class="divide-y divide-gray-100">
-
+          {#each solicitudesRecientes as solicitud (solicitud.id)}
+            <li class="p-4 hover:bg-gray-50 flex justify-between items-center transition-colors">
+              <div>
+                <p class="text-sm font-medium text-gray-800">{solicitud.clienteNombre}</p>
+                <p class="text-xs text-gray-500">
+                  {new Date(solicitud.fechaProgramada).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {solicitud.estado}
+                </span>
+              </div>
+            </li>
+          {/each}
         </ul>
         {/if}
         
