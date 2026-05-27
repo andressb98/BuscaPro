@@ -17,6 +17,7 @@ export const registerClientSchema = z.object({
 export const registerTechSchema = z.object({
 	correo: z.string().email({ message: 'Correo inválido' }),
 	contrasena: z.string().min(6, { message: 'Mínimo 6 caracteres' }),
+	rol: z.enum(['Cliente', 'Tecnico'], { message: 'Rol inválido' }),
 	nombre: z.string().min(2, { message: 'Nombre requerido' }),
 	telefono: z.string().min(10, { message: 'Teléfono inválido' }),
 	direccion: z.string().optional(),
