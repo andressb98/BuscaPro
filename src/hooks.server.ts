@@ -1,4 +1,3 @@
-import { redirect, type Handle } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma'; // Asumiendo que instancias Prisma aquí
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -38,33 +37,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// Log para ver la información de la sesión en consola
-	console.log('[Hooks] Información de sesión:', event.locals.user);
-
-	// Protección de Rutas Centralizada
-	const pathname = event.url.pathname;
-
-	// 1. Si está en la raíz (/) o rutas de autenticación (/auth) y ya tiene sesión
-	if (pathname === '/' || pathname.startsWith('/auth')) {
-		if (event.locals.user) {
-			const redirectUrl = event.locals.user.rol === 'cliente' ? '/public/clientes' : '/public/tecnicos';
-			throw redirect(303, redirectUrl);
-		}
+	// Protección de Rutas (Ejemplo: Proteger todo lo que empiece con /dashboard)
+	if (event.url.pathname.startsWith('/dashboard') && !event.locals.user) {
+		throw redirect(303, '/auth');
 	}
-
-	// 2. Solo los clientes pueden acceder a /public/clientes
-	if (pathname.startsWith('/public/clientes')) {
-		if (!event.locals.user || event.locals.user.rol !== 'cliente') {
-			throw redirect(303, '/auth/registro');
-		}
-	}
-
-	// 3. Solo los técnicos pueden acceder a /public/tecnicos
-	if (pathname.startsWith('/public/tecnicos')) {
-		if (!event.locals.user || event.locals.user.rol !== 'tecnico') {
-			throw redirect(303, '/auth/registro');
-		}
-	}
-
 	return resolve(event);
 };

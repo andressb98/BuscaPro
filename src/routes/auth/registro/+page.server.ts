@@ -2,11 +2,13 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
+
 import {
 	registerClientSchema,
 	registerTechSchema,
 	loginSchema
 } from '$lib/server/schemas/register.schema';
+
 export const load: PageServerLoad = async ({ locals }) => {
 	// Si ya está logueado, redirigir
 	if (locals.user) {
@@ -39,11 +41,11 @@ export const actions: Actions = {
 			}
 
 			// Establecer sesión
-			cookies.set('session_id', usuario.id, {
+			cookies.set('session_id', String(usuario.id), {
 				path: '/',
 				httpOnly: true,
 				sameSite: 'strict',
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7 // 1 semana
 			});
 
@@ -58,6 +60,7 @@ export const actions: Actions = {
 	},
 
 	registerClient: async ({ request, cookies }) => {
+		console.log('Iniciando proceso de registro para cliente...');
 		const formData = Object.fromEntries(await request.formData());
 		const parsed = registerClientSchema.safeParse(formData);
 
@@ -93,10 +96,10 @@ export const actions: Actions = {
 			});
 
 			// Setear cookie HttpOnly
-			cookies.set('session_id', nuevoUsuario.id, {
+			cookies.set('session_id', String(nuevoUsuario.id), {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7 // 1 semana
 			});
 		} catch (error) {
@@ -165,10 +168,10 @@ export const actions: Actions = {
 				}
 			});
 
-			cookies.set('session_id', nuevoUsuario.id, {
+			cookies.set('session_id', String(nuevoUsuario.id), {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				maxAge: 60 * 60 * 24 * 7
 			});
 		} catch (error) {
@@ -176,6 +179,6 @@ export const actions: Actions = {
 			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });
 		}
 
-		throw redirect(303, '/public/tecnicos');
+		throw redirect(303, '/dashboard');
 	}
 };
