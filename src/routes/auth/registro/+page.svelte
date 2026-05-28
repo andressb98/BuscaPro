@@ -113,6 +113,15 @@
                         class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                 </div>
+                
+                <input
+                        id="rol"
+                        name="rol"
+                        value="Cliente"
+                        type="hidden"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
 
                 <button
                     type="submit"
@@ -234,6 +243,14 @@
                         class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                 </div>
+                 <input
+                        id="rol"
+                        name="rol"
+                        value="Tecnico"
+                        type="hidden"
+                        required
+                        class="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
 
                 <button
                     type="submit"

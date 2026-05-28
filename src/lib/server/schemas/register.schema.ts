@@ -7,6 +7,7 @@ export const loginSchema = z.object({
 
 export const registerClientSchema = z.object({
 	correo: z.string().email({ message: 'Correo inválido' }),
+	rol: z.enum(['Cliente'], { message: 'Rol inválido' }),
 	contrasena: z.string().min(6, { message: 'Mínimo 6 caracteres' }),
 	nombre: z.string().min(2, { message: 'Nombre requerido' }),
 	telefono: z.string().min(10, { message: 'Teléfono inválido' }),
@@ -17,7 +18,7 @@ export const registerClientSchema = z.object({
 export const registerTechSchema = z.object({
 	correo: z.string().email({ message: 'Correo inválido' }),
 	contrasena: z.string().min(6, { message: 'Mínimo 6 caracteres' }),
-	rol: z.enum(['Cliente', 'Tecnico'], { message: 'Rol inválido' }),
+	rol: z.enum(['Tecnico'], { message: 'Rol inválido' }),
 	nombre: z.string().min(2, { message: 'Nombre requerido' }),
 	telefono: z.string().min(10, { message: 'Teléfono inválido' }),
 	direccion: z.string().optional(),

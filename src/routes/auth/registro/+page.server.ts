@@ -2,15 +2,18 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
 import bcrypt from 'bcrypt';
-import { registerClientSchema, registerTechSchema } from '$lib/server/schemas/register.schema';
-import { loginSchema } from '$lib/server/schemas/login.schema';
+import {
+	registerClientSchema,
+	registerTechSchema,
+	loginSchema
+} from '$lib/server/schemas/register.schema';
 export const load: PageServerLoad = async ({ locals }) => {
 	// Si ya está logueado, redirigir
 	if (locals.user) {
 		const redirectUrl = locals.user.rol === 'cliente' ? '/public/clientes' : '/public/tecnicos';
 		throw redirect(303, redirectUrl);
 	}
-	
+
 	// Aquí podrías cargar las especializaciones para el select de técnicos
 	const especializaciones = await prisma.especializacion.findMany();
 	return { especializaciones };
@@ -45,7 +48,8 @@ export const actions: Actions = {
 			});
 
 			// Definir la ruta dependiendo de si es Técnico o Cliente (según el valor de DB)
-			redirectUrl = usuario.rol.toUpperCase() === 'CLIENTE' ? '/public/clientes' : '/public/tecnicos';
+			redirectUrl =
+				usuario.rol.toUpperCase() === 'CLIENTE' ? '/public/clientes' : '/public/tecnicos';
 		} catch (error) {
 			return fail(500, { formName: 'login', error: 'Error interno del servidor.' });
 		}
@@ -61,9 +65,8 @@ export const actions: Actions = {
 			return fail(400, { formName: 'client', errors: parsed.error.flatten().fieldErrors });
 		}
 
-		console.log('Datos recibidos para registro cliente:', parsed.data);
-
-		const { correo, contrasena, nombre, telefono, direccion, urlIdentificacionOficial } = parsed.data;
+		const { correo, contrasena, nombre, telefono, direccion, urlIdentificacionOficial } =
+			parsed.data;
 
 		try {
 			// Verificar si existe el correo
@@ -96,7 +99,6 @@ export const actions: Actions = {
 				secure: process.env.NODE_ENV === 'production',
 				maxAge: 60 * 60 * 24 * 7 // 1 semana
 			});
-
 		} catch (error) {
 			console.error('Error al registrar cliente:', error);
 			return fail(500, { formName: 'client', error: 'Error interno del servidor.' });
@@ -104,11 +106,14 @@ export const actions: Actions = {
 
 		throw redirect(303, '/public/clientes');
 	},
-	
 
 	registerTecnico: async ({ request, cookies }) => {
+		console.log('Iniciando registro de técnico...');
 		const formData = Object.fromEntries(await request.formData());
+		console.log('Datos recibidos:', formData);
 		const parsed = registerTechSchema.safeParse(formData);
+		console.log('Datos validados:', parsed);
+
 
 		if (!parsed.success) {
 			return fail(400, { formName: 'tecnico', errors: parsed.error.flatten().fieldErrors });
@@ -131,21 +136,12 @@ export const actions: Actions = {
 			if (existe) return fail(400, { formName: 'tecnico', error: 'El correo ya está registrado.' });
 
 			// Validar existencia de especialización (Obligatorio por regla de negocio)
-			const espExiste = await prisma.especializacion.findUnique({ where: { id: especializacionId } });
+			const espExiste = await prisma.especializacion.findUnique({
+				where: { id: especializacionId }
+			});
 			if (!espExiste) return fail(400, { formName: 'tecnico', error: 'Especialización inválida.' });
 
 			const hashedContrasena = await bcrypt.hash(contrasena, 12);
-
-			console.log('Creando usuario técnico con datos):', {
-				correo,
-				nombre,
-				telefono,
-				direccion,
-				formacion: gradoEscolar,
-				experiencia,
-				especializacionId,
-				estaVerificado: false
-			});
 
 			// Prisma Nested Insert
 
@@ -175,7 +171,6 @@ export const actions: Actions = {
 				secure: process.env.NODE_ENV === 'production',
 				maxAge: 60 * 60 * 24 * 7
 			});
-
 		} catch (error) {
 			console.error('Error al registrar técnico:', error);
 			return fail(500, { formName: 'tecnico', error: 'Error interno del servidor.' });

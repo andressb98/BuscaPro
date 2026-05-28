@@ -23,6 +23,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			telefono,
 			especializacionId,
 			direccion,
+			rol,
 			gradoEscolar,
 			experiencia,
 			urlIdentificacion
